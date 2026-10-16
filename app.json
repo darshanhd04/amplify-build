@@ -23,9 +23,10 @@
       "package": "com.amplify.campaigns",
       "versionCode": 1,
       "permissions": [
-        "INTERNET",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "android.permission.INTERNET",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -39,6 +40,12 @@
           "photosPermission": "Allow AMPLIFY to access photos to select campaign and ad visuals."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "120f10cf-4d94-4a39-ad21-cd36986184bf"
+      }
+    },
+    "owner": "darshandharmaraj"
   }
 }
