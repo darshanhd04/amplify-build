@@ -3,6 +3,7 @@
  * Manages user profile, contribution history, backed campaigns, and simulated Reviewer Desk mode
  */
 
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ContributionRepository } from '../services/repository';
 
