@@ -1,12 +1,16 @@
 /**
  * LoginScreen
- * Editorial-grade authentication portal for Campaign Creators & Evaluators.
- * Features:
- * - Social & Federated Sign-In: Google / Gmail and Apple (iOS)
- * - Email & Password authentication
- * - Tab switcher & "Already have an account? Sign In" toggle
- * - 1-Tap Demo fast-track sign-ins (Creator & Reviewer Desk)
- * - Contextual redirect back to Dashboard or submitted campaign
+ * Clean separation between Sign In and Complete Registration:
+ * 1. Sign In Tab (mode === 'login'):
+ *    - Google / Gmail Sign In
+ *    - Apple (iOS) Sign In
+ *    - Email & Password Sign In
+ *    - "Don't have an account? Sign Up / Register"
+ *    - 1-Tap Demo Evaluator options
+ * 2. Create Account Tab (mode === 'register'):
+ *    - Dedicated Registration Form (Name, Handle, Role, Email, Password, Confirm Password)
+ *    - "Complete Registration" button
+ *    - "Already have an account? Sign In" (switches back to Sign In tab)
  */
 
 import React, { useState } from 'react';
@@ -34,30 +38,41 @@ export const LoginScreen = ({ navigation, route }) => {
   const { login } = useUser();
 
   const [mode, setMode] = useState('login'); // 'login' | 'register'
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [handle, setHandle] = useState('');
-  const [role, setRole] = useState('Creator');
-  const [showPassword, setShowPassword] = useState(false);
+  
+  // Login Form States
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
+
+  // Registration Form States
+  const [regName, setRegName] = useState('');
+  const [regHandle, setRegHandle] = useState('');
+  const [regRole, setRegRole] = useState('Creator');
+  const [regEmail, setRegEmail] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [regConfirmPassword, setRegConfirmPassword] = useState('');
+  const [showRegPassword, setShowRegPassword] = useState(false);
+  const [agreedToStandards, setAgreedToStandards] = useState(true);
+
+  // Status & Feedback States
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState(null); // 'google' | 'apple' | null
   const [errorMessage, setErrorMessage] = useState('');
   const [successToast, setSuccessToast] = useState('');
 
-  // 1. Email / Password Sign In
-  const handleSignIn = async () => {
+  // 1. Email / Password Sign In (under Sign In)
+  const handleEmailSignIn = async () => {
     setErrorMessage('');
-    if (!email.trim()) {
+    if (!loginEmail.trim()) {
       setErrorMessage('Please enter your email address.');
       return;
     }
-    if (!email.includes('@') || !email.includes('.')) {
+    if (!loginEmail.includes('@') || !loginEmail.includes('.')) {
       setErrorMessage('Please enter a valid email address.');
       return;
     }
-    if (!password || password.length < 4) {
+    if (!loginPassword || loginPassword.length < 4) {
       setErrorMessage('Password must be at least 4 characters long.');
       return;
     }
@@ -66,23 +81,23 @@ export const LoginScreen = ({ navigation, route }) => {
     setTimeout(async () => {
       try {
         await login({
-          email: email.trim().toLowerCase(),
-          name: name.trim() || 'Campaign Creator',
-          handle: handle.trim() || `@${email.split('@')[0]}`,
-          role: role === 'Reviewer' ? 'Editorial Reviewer' : 'Campaign Creator',
-          isReviewerSimulated: role === 'Reviewer',
+          email: loginEmail.trim().toLowerCase(),
+          name: 'Campaign Creator',
+          handle: `@${loginEmail.split('@')[0]}`,
+          role: 'Campaign Creator',
+          isReviewerSimulated: false,
           authProvider: 'email',
         });
         setLoading(false);
         navigation.replace(returnTo, { initialTab });
       } catch (err) {
         setLoading(false);
-        setErrorMessage('Authentication failed. Please try again.');
+        setErrorMessage('Authentication failed. Please check credentials.');
       }
     }, 600);
   };
 
-  // 2. Google / Gmail Sign In
+  // 2. Google / Gmail Sign In (under Sign In)
   const handleGoogleSignIn = async () => {
     setErrorMessage('');
     setSocialLoading('google');
@@ -108,7 +123,7 @@ export const LoginScreen = ({ navigation, route }) => {
     }, 700);
   };
 
-  // 3. Apple (iOS) Sign In
+  // 3. Apple (iOS) Sign In (under Sign In)
   const handleAppleSignIn = async () => {
     setErrorMessage('');
     setSocialLoading('apple');
@@ -134,7 +149,55 @@ export const LoginScreen = ({ navigation, route }) => {
     }, 700);
   };
 
-  // 4. Quick Demo Logins
+  // 4. Complete Registration (under Complete Registration)
+  const handleCompleteRegistration = async () => {
+    setErrorMessage('');
+    if (!regName.trim()) {
+      setErrorMessage('Full name is required for creator verification.');
+      return;
+    }
+    if (!regHandle.trim()) {
+      setErrorMessage('Please choose a public creator handle (e.g. @your_cause).');
+      return;
+    }
+    if (!regEmail.trim() || !regEmail.includes('@') || !regEmail.includes('.')) {
+      setErrorMessage('Please enter a valid email address.');
+      return;
+    }
+    if (!regPassword || regPassword.length < 6) {
+      setErrorMessage('Password must be at least 6 characters long.');
+      return;
+    }
+    if (regPassword !== regConfirmPassword) {
+      setErrorMessage('Passwords do not match. Please re-enter.');
+      return;
+    }
+    if (!agreedToStandards) {
+      setErrorMessage('Please agree to AMPLIFY Editorial and Verification standards.');
+      return;
+    }
+
+    setLoading(true);
+    setTimeout(async () => {
+      try {
+        await login({
+          email: regEmail.trim().toLowerCase(),
+          name: regName.trim(),
+          handle: regHandle.trim().startsWith('@') ? regHandle.trim() : `@${regHandle.trim()}`,
+          role: regRole === 'Reviewer' ? 'Editorial Reviewer' : 'Campaign Creator',
+          isReviewerSimulated: regRole === 'Reviewer',
+          authProvider: 'email_registration',
+        });
+        setLoading(false);
+        navigation.replace(returnTo, { initialTab });
+      } catch (err) {
+        setLoading(false);
+        setErrorMessage('Registration failed. Please try again.');
+      }
+    }, 700);
+  };
+
+  // 5. Quick Demo Logins
   const handleQuickDemoLogin = async (type) => {
     setLoading(true);
     setErrorMessage('');
@@ -184,7 +247,7 @@ export const LoginScreen = ({ navigation, route }) => {
           <Ionicons name="arrow-back" size={22} color={colors.textInverse} />
         </TouchableOpacity>
         <Text style={styles.topBarTitle}>
-          {mode === 'login' ? 'Sign In to AMPLIFY' : 'Create Creator Account'}
+          {mode === 'login' ? 'Sign In' : 'Complete Registration'}
         </Text>
         <View style={{ width: 40 }} />
       </View>
@@ -208,12 +271,12 @@ export const LoginScreen = ({ navigation, route }) => {
               </View>
             </View>
             <Text style={styles.heroTitle}>
-              {mode === 'login' ? 'Welcome Back' : 'Join as a Creator'}
+              {mode === 'login' ? 'Sign In to Dashboard' : 'Complete Registration'}
             </Text>
             <Text style={styles.heroSubtitle}>
               {mode === 'login'
-                ? 'Sign in to access your Campaign Dashboard, monitor ad delivery metrics, and access the Reviewer Desk.'
-                : 'Create an account to publish verified campaigns, access transparent funding tools, and broadcast your story.'}
+                ? 'Sign in using Google, Apple (iOS), or your Email to access your Creator Dashboard and Reviewer Desk.'
+                : 'Create your verified creator credentials to publish initiatives and monitor programmatic ad reach.'}
             </Text>
           </View>
 
@@ -224,6 +287,7 @@ export const LoginScreen = ({ navigation, route }) => {
               onPress={() => {
                 setMode('login');
                 setErrorMessage('');
+                setSuccessToast('');
               }}
               style={[styles.modeTab, mode === 'login' && styles.modeTabActive]}
             >
@@ -236,186 +300,138 @@ export const LoginScreen = ({ navigation, route }) => {
               onPress={() => {
                 setMode('register');
                 setErrorMessage('');
+                setSuccessToast('');
               }}
               style={[styles.modeTab, mode === 'register' && styles.modeTabActive]}
             >
               <Text style={[styles.modeTabText, mode === 'register' && styles.modeTabTextActive]}>
-                Create Account
+                Complete Registration
               </Text>
             </TouchableOpacity>
           </View>
 
-          {/* SOCIAL & FEDERATED SIGN-IN OPTIONS */}
-          <View style={styles.socialButtonsContainer}>
-            {/* Google / Gmail Button */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={handleGoogleSignIn}
-              disabled={socialLoading !== null}
-              style={styles.googleButton}
-            >
-              {socialLoading === 'google' ? (
-                <ActivityIndicator size="small" color="#EA4335" />
-              ) : (
-                <>
-                  <View style={styles.socialIconBox}>
-                    <Ionicons name="logo-google" size={20} color="#EA4335" />
-                  </View>
-                  <Text style={styles.googleButtonText}>
-                    {mode === 'login' ? 'Sign in with Google / Gmail' : 'Sign up with Google / Gmail'}
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
-
-            {/* Apple (iOS) Button */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={handleAppleSignIn}
-              disabled={socialLoading !== null}
-              style={styles.appleButton}
-            >
-              {socialLoading === 'apple' ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <>
-                  <View style={styles.socialIconBox}>
-                    <Ionicons name="logo-apple" size={21} color="#FFFFFF" />
-                  </View>
-                  <Text style={styles.appleButtonText}>
-                    {mode === 'login' ? 'Continue with Apple (iOS)' : 'Sign up with Apple (iOS)'}
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </View>
-
-          {/* Divider: OR WITH EMAIL */}
-          <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>
-              OR {mode === 'login' ? 'SIGN IN' : 'SIGN UP'} WITH EMAIL
-            </Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          {/* Form Card */}
-          <View style={styles.card}>
-            {errorMessage ? (
-              <View style={styles.errorContainer}>
-                <Ionicons name="alert-circle" size={18} color={colors.error} />
-                <Text style={styles.errorText}>{errorMessage}</Text>
-              </View>
-            ) : null}
-
-            {successToast ? (
-              <View style={styles.successToastContainer}>
-                <Ionicons name="checkmark-circle" size={18} color={colors.primaryGreen} />
-                <Text style={styles.successToastText}>{successToast}</Text>
-              </View>
-            ) : null}
-
-            {mode === 'register' && (
-              <>
-                <Text style={styles.inputLabel}>Full Name</Text>
-                <View style={styles.inputWrapper}>
-                  <Ionicons name="person-outline" size={18} color={colors.textTertiary} style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="e.g. Priya Nair"
-                    placeholderTextColor={colors.textTertiary}
-                    value={name}
-                    onChangeText={setName}
-                    autoCapitalize="words"
-                  />
-                </View>
-
-                <Text style={styles.inputLabel}>Public Handle</Text>
-                <View style={styles.inputWrapper}>
-                  <Ionicons name="at-outline" size={18} color={colors.textTertiary} style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="e.g. @priya_advocacy"
-                    placeholderTextColor={colors.textTertiary}
-                    value={handle}
-                    onChangeText={setHandle}
-                    autoCapitalize="none"
-                  />
-                </View>
-
-                <Text style={styles.inputLabel}>Your Primary Role</Text>
-                <View style={styles.roleRow}>
-                  {['Creator', 'Reviewer', 'Backer'].map((r) => (
-                    <TouchableOpacity
-                      key={r}
-                      activeOpacity={0.8}
-                      onPress={() => setRole(r)}
-                      style={[styles.roleChip, role === r && styles.roleChipActive]}
-                    >
-                      <Text style={[styles.roleChipText, role === r && styles.roleChipTextActive]}>
-                        {r === 'Reviewer' ? 'Auditor / Reviewer' : r}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </>
-            )}
-
-            <Text style={styles.inputLabel}>Email Address</Text>
-            <View style={styles.inputWrapper}>
-              <Ionicons name="mail-outline" size={18} color={colors.textTertiary} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="name@organization.org or gmail.com"
-                placeholderTextColor={colors.textTertiary}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
+          {/* Feedback Alerts */}
+          {errorMessage ? (
+            <View style={styles.errorContainer}>
+              <Ionicons name="alert-circle" size={18} color={colors.error} />
+              <Text style={styles.errorText}>{errorMessage}</Text>
             </View>
+          ) : null}
 
-            <Text style={styles.inputLabel}>Password</Text>
-            <View style={styles.inputWrapper}>
-              <Ionicons name="lock-closed-outline" size={18} color={colors.textTertiary} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your password"
-                placeholderTextColor={colors.textTertiary}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeButton}
-              >
-                <Ionicons
-                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                  size={20}
-                  color={colors.textSecondary}
-                />
-              </TouchableOpacity>
+          {successToast ? (
+            <View style={styles.successToastContainer}>
+              <Ionicons name="checkmark-circle" size={18} color={colors.primaryGreen} />
+              <Text style={styles.successToastText}>{successToast}</Text>
             </View>
+          ) : null}
 
-            {/* Remember Me & Forgot Password */}
-            <View style={styles.optionsRow}>
+          {/* ========================================================= */}
+          {/* 1. SIGN IN MODE (Google, Apple, Email/Password Form) */}
+          {/* ========================================================= */}
+          {mode === 'login' && (
+            <View style={styles.card}>
+              <Text style={styles.sectionHeading}>Fast Social Sign-In</Text>
+
+              {/* Google / Gmail Button */}
               <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => setRememberMe(!rememberMe)}
-                style={styles.rememberMeRow}
+                activeOpacity={0.8}
+                onPress={handleGoogleSignIn}
+                disabled={socialLoading !== null || loading}
+                style={styles.googleButton}
               >
-                <Ionicons
-                  name={rememberMe ? 'checkbox' : 'square-outline'}
-                  size={20}
-                  color={rememberMe ? colors.forestGreen : colors.textTertiary}
-                />
-                <Text style={styles.rememberMeText}>Keep me signed in</Text>
+                {socialLoading === 'google' ? (
+                  <ActivityIndicator size="small" color="#EA4335" />
+                ) : (
+                  <>
+                    <View style={styles.socialIconBox}>
+                      <Ionicons name="logo-google" size={20} color="#EA4335" />
+                    </View>
+                    <Text style={styles.googleButtonText}>Sign in with Google / Gmail</Text>
+                  </>
+                )}
               </TouchableOpacity>
 
-              {mode === 'login' && (
+              {/* Apple (iOS) Button */}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={handleAppleSignIn}
+                disabled={socialLoading !== null || loading}
+                style={styles.appleButton}
+              >
+                {socialLoading === 'apple' ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <View style={styles.socialIconBox}>
+                      <Ionicons name="logo-apple" size={21} color="#FFFFFF" />
+                    </View>
+                    <Text style={styles.appleButtonText}>Continue with Apple (iOS)</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              {/* Divider */}
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>OR SIGN IN WITH EMAIL</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              {/* Email / Password Form */}
+              <Text style={styles.inputLabel}>Email Address</Text>
+              <View style={styles.inputWrapper}>
+                <Ionicons name="mail-outline" size={18} color={colors.textTertiary} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="name@organization.org or gmail.com"
+                  placeholderTextColor={colors.textTertiary}
+                  value={loginEmail}
+                  onChangeText={setLoginEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+
+              <Text style={styles.inputLabel}>Password</Text>
+              <View style={styles.inputWrapper}>
+                <Ionicons name="lock-closed-outline" size={18} color={colors.textTertiary} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your password"
+                  placeholderTextColor={colors.textTertiary}
+                  value={loginPassword}
+                  onChangeText={setLoginPassword}
+                  secureTextEntry={!showLoginPassword}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity
+                  onPress={() => setShowLoginPassword(!showLoginPassword)}
+                  style={styles.eyeButton}
+                >
+                  <Ionicons
+                    name={showLoginPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* Remember Me & Forgot Password */}
+              <View style={styles.optionsRow}>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => setRememberMe(!rememberMe)}
+                  style={styles.rememberMeRow}
+                >
+                  <Ionicons
+                    name={rememberMe ? 'checkbox' : 'square-outline'}
+                    size={20}
+                    color={rememberMe ? colors.forestGreen : colors.textTertiary}
+                  />
+                  <Text style={styles.rememberMeText}>Keep me signed in</Text>
+                </TouchableOpacity>
+
                 <TouchableOpacity
                   activeOpacity={0.7}
                   onPress={() =>
@@ -427,41 +443,20 @@ export const LoginScreen = ({ navigation, route }) => {
                 >
                   <Text style={styles.forgotPasswordText}>Forgot password?</Text>
                 </TouchableOpacity>
-              )}
-            </View>
+              </View>
 
-            {/* Primary Action Button */}
-            <Button
-              title={
-                loading
-                  ? 'Authenticating...'
-                  : mode === 'login'
-                  ? 'Sign In with Email'
-                  : 'Complete Registration'
-              }
-              onPress={handleSignIn}
-              loading={loading}
-              icon="arrow-forward"
-              iconPosition="right"
-              style={styles.submitButton}
-            />
+              {/* Sign In Button */}
+              <Button
+                title={loading ? 'Authenticating...' : 'Sign In with Email'}
+                onPress={handleEmailSignIn}
+                loading={loading}
+                icon="arrow-forward"
+                iconPosition="right"
+                style={styles.submitButton}
+              />
 
-            {/* ALREADY HAVE AN ACCOUNT / DON'T HAVE AN ACCOUNT SWITCHER */}
-            <View style={styles.accountSwitchContainer}>
-              {mode === 'register' ? (
-                <View style={styles.switchRow}>
-                  <Text style={styles.switchPromptText}>Already have an account?</Text>
-                  <TouchableOpacity
-                    activeOpacity={0.7}
-                    onPress={() => {
-                      setMode('login');
-                      setErrorMessage('');
-                    }}
-                  >
-                    <Text style={styles.switchActionLink}> Sign In</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
+              {/* Switcher to Registration */}
+              <View style={styles.accountSwitchContainer}>
                 <View style={styles.switchRow}>
                   <Text style={styles.switchPromptText}>Don’t have an account yet?</Text>
                   <TouchableOpacity
@@ -469,16 +464,173 @@ export const LoginScreen = ({ navigation, route }) => {
                     onPress={() => {
                       setMode('register');
                       setErrorMessage('');
+                      setSuccessToast('');
                     }}
                   >
-                    <Text style={styles.switchActionLink}> Sign Up / Register</Text>
+                    <Text style={styles.switchActionLink}> Complete Registration</Text>
                   </TouchableOpacity>
                 </View>
-              )}
+              </View>
             </View>
-          </View>
+          )}
 
-          {/* Quick Demo Access Divider */}
+          {/* ========================================================= */}
+          {/* 2. COMPLETE REGISTRATION MODE (Dedicated Sign Up Form)    */}
+          {/* ========================================================= */}
+          {mode === 'register' && (
+            <View style={styles.card}>
+              <Text style={styles.sectionHeading}>Creator Account Registration</Text>
+              <Text style={styles.sectionSubHeading}>
+                Enter your details to create a verified publisher profile.
+              </Text>
+
+              {/* Full Name */}
+              <Text style={styles.inputLabel}>Full Name</Text>
+              <View style={styles.inputWrapper}>
+                <Ionicons name="person-outline" size={18} color={colors.textTertiary} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. Priya Nair"
+                  placeholderTextColor={colors.textTertiary}
+                  value={regName}
+                  onChangeText={setRegName}
+                  autoCapitalize="words"
+                />
+              </View>
+
+              {/* Public Handle */}
+              <Text style={styles.inputLabel}>Public Handle</Text>
+              <View style={styles.inputWrapper}>
+                <Ionicons name="at-outline" size={18} color={colors.textTertiary} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. @priya_advocacy"
+                  placeholderTextColor={colors.textTertiary}
+                  value={regHandle}
+                  onChangeText={setRegHandle}
+                  autoCapitalize="none"
+                />
+              </View>
+
+              {/* Primary Role */}
+              <Text style={styles.inputLabel}>Primary Role</Text>
+              <View style={styles.roleRow}>
+                {['Creator', 'Reviewer', 'Backer'].map((r) => (
+                  <TouchableOpacity
+                    key={r}
+                    activeOpacity={0.8}
+                    onPress={() => setRegRole(r)}
+                    style={[styles.roleChip, regRole === r && styles.roleChipActive]}
+                  >
+                    <Text style={[styles.roleChipText, regRole === r && styles.roleChipTextActive]}>
+                      {r === 'Reviewer' ? 'Auditor / Desk' : r}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Email Address */}
+              <Text style={styles.inputLabel}>Email Address</Text>
+              <View style={styles.inputWrapper}>
+                <Ionicons name="mail-outline" size={18} color={colors.textTertiary} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="name@organization.org or gmail.com"
+                  placeholderTextColor={colors.textTertiary}
+                  value={regEmail}
+                  onChangeText={setRegEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+
+              {/* Create Password */}
+              <Text style={styles.inputLabel}>Create Password</Text>
+              <View style={styles.inputWrapper}>
+                <Ionicons name="lock-closed-outline" size={18} color={colors.textTertiary} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Minimum 6 characters"
+                  placeholderTextColor={colors.textTertiary}
+                  value={regPassword}
+                  onChangeText={setRegPassword}
+                  secureTextEntry={!showRegPassword}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity
+                  onPress={() => setShowRegPassword(!showRegPassword)}
+                  style={styles.eyeButton}
+                >
+                  <Ionicons
+                    name={showRegPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* Confirm Password */}
+              <Text style={styles.inputLabel}>Confirm Password</Text>
+              <View style={styles.inputWrapper}>
+                <Ionicons name="shield-outline" size={18} color={colors.textTertiary} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Re-enter password"
+                  placeholderTextColor={colors.textTertiary}
+                  value={regConfirmPassword}
+                  onChangeText={setRegConfirmPassword}
+                  secureTextEntry={!showRegPassword}
+                  autoCapitalize="none"
+                />
+              </View>
+
+              {/* Terms Checkbox */}
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setAgreedToStandards(!agreedToStandards)}
+                style={styles.termsRow}
+              >
+                <Ionicons
+                  name={agreedToStandards ? 'checkbox' : 'square-outline'}
+                  size={20}
+                  color={agreedToStandards ? colors.forestGreen : colors.textTertiary}
+                />
+                <Text style={styles.termsText}>
+                  I agree to AMPLIFY’s verified citation and transparent use-of-funds policies.
+                </Text>
+              </TouchableOpacity>
+
+              {/* Complete Registration Action Button */}
+              <Button
+                title={loading ? 'Registering...' : 'Complete Registration'}
+                onPress={handleCompleteRegistration}
+                loading={loading}
+                icon="checkmark-circle-outline"
+                iconPosition="right"
+                style={styles.submitButton}
+              />
+
+              {/* "Already have an account? Sign In" Switcher */}
+              <View style={styles.accountSwitchContainer}>
+                <View style={styles.switchRow}>
+                  <Text style={styles.switchPromptText}>Already have an account?</Text>
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      setMode('login');
+                      setErrorMessage('');
+                      setSuccessToast('');
+                    }}
+                  >
+                    <Text style={styles.switchActionLink}> Sign In</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Quick Demo Access Divider (always helpful for evaluators) */}
           <View style={styles.dividerRow}>
             <View style={styles.dividerLine} />
             <Text style={styles.dividerText}>OR 1-TAP DEMO EVALUATION</Text>
@@ -630,9 +782,26 @@ const styles = StyleSheet.create({
     color: colors.forestGreen,
     fontWeight: '700',
   },
-  socialButtonsContainer: {
-    gap: 10,
-    marginBottom: spacing.sm,
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.card,
+  },
+  sectionHeading: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    marginBottom: 4,
+    letterSpacing: 0.2,
+  },
+  sectionSubHeading: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
+    lineHeight: 17,
   },
   googleButton: {
     flexDirection: 'row',
@@ -644,6 +813,8 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     height: 48,
     paddingHorizontal: spacing.md,
+    marginTop: 8,
+    marginBottom: 10,
     ...shadows.card,
   },
   googleButtonText: {
@@ -660,6 +831,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     height: 48,
     paddingHorizontal: spacing.md,
+    marginBottom: spacing.xs,
     ...shadows.card,
   },
   appleButtonText: {
@@ -672,14 +844,6 @@ const styles = StyleSheet.create({
     marginRight: 10,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    ...shadows.card,
   },
   errorContainer: {
     flexDirection: 'row',
@@ -792,6 +956,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.primaryGreen,
     fontWeight: '600',
+  },
+  termsRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginBottom: spacing.md,
+    paddingRight: spacing.sm,
+  },
+  termsText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 18,
+    flex: 1,
   },
   submitButton: {
     marginTop: 4,
