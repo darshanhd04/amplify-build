@@ -63,6 +63,30 @@ export const LoginScreen = ({ navigation, route }) => {
   const [errorMessage, setErrorMessage] = useState('');
   const [successToast, setSuccessToast] = useState('');
 
+  // Robust post-auth destination router
+  const navigateAfterAuth = () => {
+    // If the return destination is Dashboard, Profile, or unspecified, take user straight to Creator Dashboard
+    if (!returnTo || returnTo === 'Dashboard' || returnTo === 'ProfileTab' || returnTo === 'MainTabs') {
+      try {
+        navigation.reset({
+          index: 1,
+          routes: [
+            { name: 'MainTabs' },
+            { name: 'Dashboard', params: { initialTab: initialTab || 'all' } },
+          ],
+        });
+      } catch (e) {
+        navigation.navigate('Dashboard', { initialTab: initialTab || 'all' });
+      }
+    } else {
+      try {
+        navigation.navigate(returnTo, { initialTab });
+      } catch (e) {
+        navigation.navigate('Dashboard', { initialTab: initialTab || 'all' });
+      }
+    }
+  };
+
   // 1. Email / Password Sign In
   const handleEmailSignIn = async () => {
     setErrorMessage('');
@@ -91,12 +115,12 @@ export const LoginScreen = ({ navigation, route }) => {
           authProvider: 'email',
         });
         setLoading(false);
-        navigation.replace(returnTo, { initialTab });
+        navigateAfterAuth();
       } catch (err) {
         setLoading(false);
         setErrorMessage('Authentication failed. Please check credentials.');
       }
-    }, 600);
+    }, 400);
   };
 
   // 2. Google / Gmail Sign In
@@ -117,12 +141,12 @@ export const LoginScreen = ({ navigation, route }) => {
           authProvider: 'google',
         });
         setSocialLoading(null);
-        navigation.replace(returnTo, { initialTab });
+        navigateAfterAuth();
       } catch (err) {
         setSocialLoading(null);
         setErrorMessage('Google authentication encountered an issue.');
       }
-    }, 700);
+    }, 400);
   };
 
   // 3. Apple (iOS) Sign In
@@ -143,12 +167,12 @@ export const LoginScreen = ({ navigation, route }) => {
           authProvider: 'apple',
         });
         setSocialLoading(null);
-        navigation.replace(returnTo, { initialTab });
+        navigateAfterAuth();
       } catch (err) {
         setSocialLoading(null);
         setErrorMessage('Apple ID authentication failed.');
       }
-    }, 700);
+    }, 400);
   };
 
   // 4. Complete Registration
@@ -191,12 +215,12 @@ export const LoginScreen = ({ navigation, route }) => {
           authProvider: 'email_registration',
         });
         setLoading(false);
-        navigation.replace(returnTo, { initialTab });
+        navigateAfterAuth();
       } catch (err) {
         setLoading(false);
         setErrorMessage('Registration failed. Please try again.');
       }
-    }, 700);
+    }, 400);
   };
 
   // 5. Quick Demo Logins
@@ -227,12 +251,12 @@ export const LoginScreen = ({ navigation, route }) => {
           });
         }
         setLoading(false);
-        navigation.replace(returnTo, { initialTab });
+        navigateAfterAuth();
       } catch (err) {
         setLoading(false);
         setErrorMessage('Demo login failed.');
       }
-    }, 400);
+    }, 300);
   };
 
   return (

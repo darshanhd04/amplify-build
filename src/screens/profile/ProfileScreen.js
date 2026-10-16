@@ -85,7 +85,7 @@ export const ProfileScreen = ({ navigation }) => {
               if (isLoggedIn) {
                 logout();
               } else {
-                navigation.navigate('Login', { returnTo: 'ProfileTab' });
+                navigation.navigate('Login', { returnTo: 'Dashboard' });
               }
             }}
             style={[

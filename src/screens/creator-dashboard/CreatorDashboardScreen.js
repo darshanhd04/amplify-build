@@ -67,7 +67,7 @@ export const CreatorDashboardScreen = ({ navigation, route }) => {
 
           <Button
             title="Sign In to Dashboard"
-            onPress={() => navigation.replace('Login', { returnTo: 'Dashboard', initialTab })}
+            onPress={() => navigation.navigate('Login', { returnTo: 'Dashboard', initialTab })}
             icon="log-in-outline"
             style={{ width: '100%', marginBottom: spacing.sm }}
           />
