@@ -23,7 +23,7 @@ import { Button } from '../../components/common/Button';
 import { formatCurrency, formatMetric } from '../../utils/calculations';
 
 export const ProfileScreen = ({ navigation }) => {
-  const { user, contributions, totalContributed, totalAmplifiedReach, toggleReviewerMode } = useUser();
+  const { user, isLoggedIn, logout, contributions, totalContributed, totalAmplifiedReach, toggleReviewerMode } = useUser();
   const { campaigns, savedIds, resetToSeeds } = useCampaigns();
 
   const [resetSuccess, setResetSuccess] = useState(false);
@@ -35,6 +35,14 @@ export const ProfileScreen = ({ navigation }) => {
     await resetToSeeds();
     setResetSuccess(true);
     setTimeout(() => setResetSuccess(false), 2500);
+  };
+
+  const handleOpenDashboard = (tab) => {
+    if (!isLoggedIn) {
+      navigation.navigate('Login', { returnTo: 'Dashboard', initialTab: tab });
+    } else {
+      navigation.navigate('Dashboard', { initialTab: tab });
+    }
   };
 
   return (
@@ -53,16 +61,52 @@ export const ProfileScreen = ({ navigation }) => {
       >
         {/* User Card */}
         <View style={styles.userCard}>
-          <View style={styles.avatarCircle}>
-            <Text style={styles.avatarInitials}>AS</Text>
+          <View style={[styles.avatarCircle, !isLoggedIn && { backgroundColor: colors.textTertiary }]}>
+            <Text style={styles.avatarInitials}>
+              {isLoggedIn ? (user?.name?.slice(0, 2).toUpperCase() || 'AS') : '👤'}
+            </Text>
           </View>
           <View style={styles.userMeta}>
-            <Text style={styles.userName}>{user.name}</Text>
-            <Text style={styles.userHandle}>{user.handle}</Text>
-            <View style={styles.rolePill}>
-              <Text style={styles.rolePillText}>{user.role}</Text>
+            <Text style={styles.userName}>
+              {isLoggedIn ? user.name : 'Guest Evaluator'}
+            </Text>
+            <Text style={styles.userHandle}>
+              {isLoggedIn ? user.handle : 'Public Discovery Mode'}
+            </Text>
+            <View style={[styles.rolePill, !isLoggedIn && { backgroundColor: colors.sand }]}>
+              <Text style={[styles.rolePillText, !isLoggedIn && { color: colors.textSecondary }]}>
+                {isLoggedIn ? user.role : 'Unauthenticated'}
+              </Text>
             </View>
           </View>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => {
+              if (isLoggedIn) {
+                logout();
+              } else {
+                navigation.navigate('Login', { returnTo: 'ProfileTab' });
+              }
+            }}
+            style={[
+              styles.authActionBtn,
+              isLoggedIn ? styles.authActionBtnOutline : styles.authActionBtnSolid,
+            ]}
+          >
+            <Ionicons
+              name={isLoggedIn ? 'log-out-outline' : 'log-in-outline'}
+              size={14}
+              color={isLoggedIn ? colors.error : colors.textInverse}
+            />
+            <Text
+              style={[
+                styles.authActionText,
+                isLoggedIn ? { color: colors.error } : { color: colors.textInverse },
+              ]}
+            >
+              {isLoggedIn ? 'Sign Out' : 'Sign In'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Amplification Impact Summary Banner */}
@@ -89,12 +133,14 @@ export const ProfileScreen = ({ navigation }) => {
         <View style={styles.shortcutsRow}>
           <TouchableOpacity
             activeOpacity={0.8}
-            onPress={() => navigation.navigate('Dashboard')}
+            onPress={() => handleOpenDashboard()}
             style={styles.shortcutCard}
           >
             <Ionicons name="folder-outline" size={22} color={colors.forestGreen} />
             <Text style={styles.shortcutTitle}>Creator Desk</Text>
-            <Text style={styles.shortcutSub}>{campaigns.length} total</Text>
+            <Text style={styles.shortcutSub}>
+              {isLoggedIn ? `${campaigns.length} total` : 'Login required'}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -171,7 +217,7 @@ export const ProfileScreen = ({ navigation }) => {
             variant="secondary"
             size="sm"
             icon="apps-outline"
-            onPress={() => navigation.navigate('Dashboard')}
+            onPress={() => handleOpenDashboard()}
           />
         </View>
 
@@ -272,6 +318,26 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     color: colors.forestGreen,
+  },
+  authActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    borderRadius: borderRadius.md,
+  },
+  authActionBtnSolid: {
+    backgroundColor: colors.forestGreen,
+  },
+  authActionBtnOutline: {
+    backgroundColor: '#FDF2F2',
+    borderWidth: 1,
+    borderColor: '#F8B4B4',
+  },
+  authActionText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   impactCard: {
     backgroundColor: colors.forestGreen,

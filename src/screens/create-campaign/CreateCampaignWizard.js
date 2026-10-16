@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, borderRadius, shadows } from '../../theme';
 import { CATEGORIES, DISTRIBUTION_CHANNELS, AD_PLACEMENTS } from '../../constants';
 import { useDraft } from '../../context/DraftContext';
+import { useUser } from '../../context/UserContext';
 import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
 import { NoticeBanner } from '../../components/common/NoticeBanner';
@@ -34,6 +35,7 @@ const STEP_TITLES = [
 ];
 
 export const CreateCampaignWizard = ({ navigation }) => {
+  const { isLoggedIn } = useUser();
   const {
     currentStep,
     setCurrentStep,
@@ -70,7 +72,11 @@ export const CreateCampaignWizard = ({ navigation }) => {
 
   const handleSubmit = async () => {
     const created = await submitCampaignForReview(newCamp => {
-      navigation.navigate('Dashboard', { initialTab: 'review' });
+      if (!isLoggedIn) {
+        navigation.navigate('Login', { returnTo: 'Dashboard', initialTab: 'review' });
+      } else {
+        navigation.navigate('Dashboard', { initialTab: 'review' });
+      }
     });
   };
 

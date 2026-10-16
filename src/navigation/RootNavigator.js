@@ -23,6 +23,7 @@ import { ContributionScreen } from '../screens/contribution/ContributionScreen';
 import { ConfirmationScreen } from '../screens/contribution/ConfirmationScreen';
 import { CreatorDashboardScreen } from '../screens/creator-dashboard/CreatorDashboardScreen';
 import { DistributionReportScreen } from '../screens/reports/DistributionReportScreen';
+import { LoginScreen } from '../screens/auth/LoginScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -106,6 +107,7 @@ export const RootNavigator = () => {
       <Stack.Screen name="CampaignDetail" component={CampaignDetailScreen} />
       <Stack.Screen name="Contribution" component={ContributionScreen} />
       <Stack.Screen name="Confirmation" component={ConfirmationScreen} />
+      <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Dashboard" component={CreatorDashboardScreen} />
       <Stack.Screen name="DistributionReport" component={DistributionReportScreen} />
       <Stack.Screen name="Create" component={CreateCampaignWizard} />

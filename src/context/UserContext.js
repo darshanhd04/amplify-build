@@ -3,23 +3,73 @@
  * Manages user profile, contribution history, backed campaigns, and simulated Reviewer Desk mode
  */
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ContributionRepository } from '../services/repository';
+
+const USER_SESSION_KEY = '@amplify_user_session_v1';
+
+const DEFAULT_USER = {
+  id: 'user-demo-01',
+  name: 'Ananya Sharma',
+  handle: '@ananya_amplifies',
+  email: 'ananya.s@example.org',
+  role: 'Creator & Community Backer',
+  isReviewerSimulated: true, // Allows testing the review & approval workflow
+};
 
 const UserContext = createContext(null);
 
 export const UserProvider = ({ children }) => {
-  const [user, setUser] = useState({
-    id: 'user-demo-01',
-    name: 'Ananya Sharma',
-    handle: '@ananya_amplifies',
-    email: 'ananya.s@example.org',
-    role: 'Creator & Community Backer',
-    isReviewerSimulated: true, // Allows testing the review & approval workflow
-  });
-
+  const [user, setUser] = useState(DEFAULT_USER);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [contributions, setContributions] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Restore session from AsyncStorage if available
+  useEffect(() => {
+    const restoreSession = async () => {
+      try {
+        const saved = await AsyncStorage.getItem(USER_SESSION_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed?.isLoggedIn && parsed?.user) {
+            setUser(parsed.user);
+            setIsLoggedIn(true);
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to restore user session:', e);
+      }
+    };
+    restoreSession();
+  }, []);
+
+  const login = async (customUser = {}) => {
+    const updated = {
+      ...user,
+      ...customUser,
+    };
+    setUser(updated);
+    setIsLoggedIn(true);
+    try {
+      await AsyncStorage.setItem(
+        USER_SESSION_KEY,
+        JSON.stringify({ isLoggedIn: true, user: updated })
+      );
+    } catch (e) {
+      console.warn('Failed to save session:', e);
+    }
+    return updated;
+  };
+
+  const logout = async () => {
+    setIsLoggedIn(false);
+    try {
+      await AsyncStorage.removeItem(USER_SESSION_KEY);
+    } catch (e) {
+      console.warn('Failed to clear session:', e);
+    }
+  };
 
   const loadContributions = useCallback(async () => {
     try {
@@ -56,6 +106,9 @@ export const UserProvider = ({ children }) => {
     <UserContext.Provider
       value={{
         user,
+        isLoggedIn,
+        login,
+        logout,
         contributions,
         totalContributed,
         totalAmplifiedReach,

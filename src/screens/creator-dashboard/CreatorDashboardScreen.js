@@ -20,6 +20,7 @@ import { colors, typography, spacing, borderRadius, shadows } from '../../theme'
 import { CREATOR_TABS, CAMPAIGN_STATUS } from '../../constants';
 import { useCampaigns } from '../../context/CampaignContext';
 import { useDraft } from '../../context/DraftContext';
+import { useUser } from '../../context/UserContext';
 import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
 import { ProgressBar } from '../../components/common/ProgressBar';
@@ -31,9 +32,56 @@ export const CreatorDashboardScreen = ({ navigation, route }) => {
   const { initialTab } = route?.params || {};
   const { campaigns } = useCampaigns();
   const { hasSavedDraft, resumeDraft } = useDraft();
+  const { isLoggedIn, user, logout } = useUser();
 
   const [activeTab, setActiveTab] = useState(initialTab || 'all');
   const [selectedReviewCampaign, setSelectedReviewCampaign] = useState(null);
+
+  // Guard: require login before accessing dashboard
+  if (!isLoggedIn) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle="light-content" backgroundColor={colors.forestGreen} />
+        <View style={styles.header}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <Ionicons name="arrow-back" size={22} color={colors.textInverse} />
+          </TouchableOpacity>
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={styles.headerEyebrow}>SECURITY CLEARANCE</Text>
+            <Text style={styles.headerTitle}>Sign In Required</Text>
+          </View>
+        </View>
+
+        <View style={styles.authRequiredContainer}>
+          <View style={styles.lockIconCircle}>
+            <Ionicons name="lock-closed" size={36} color={colors.primaryGreen} />
+          </View>
+          <Text style={styles.authRequiredTitle}>Creator & Desk Access</Text>
+          <Text style={styles.authRequiredSub}>
+            You must authenticate to access the Creator Center, manage campaign drafts, and interact with the live Reviewer Moderation Desk.
+          </Text>
+
+          <Button
+            title="Sign In to Dashboard"
+            onPress={() => navigation.replace('Login', { returnTo: 'Dashboard', initialTab })}
+            icon="log-in-outline"
+            style={{ width: '100%', marginBottom: spacing.sm }}
+          />
+
+          <Button
+            title="Back to Public Discovery"
+            variant="outline"
+            onPress={() => navigation.goBack()}
+            style={{ width: '100%' }}
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   // Filter campaigns matching tab
   const getTabCampaigns = () => {
@@ -72,17 +120,38 @@ export const CreatorDashboardScreen = ({ navigation, route }) => {
 
       {/* Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerEyebrow}>CREATOR CENTER</Text>
-          <Text style={styles.headerTitle}>Campaign Dashboard</Text>
+        <View style={styles.headerLeft}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <Ionicons name="arrow-back" size={22} color={colors.textInverse} />
+          </TouchableOpacity>
+          <View>
+            <Text style={styles.headerEyebrow}>{user?.handle || 'CREATOR CENTER'}</Text>
+            <Text style={styles.headerTitle}>Campaign Dashboard</Text>
+          </View>
         </View>
-        <Button
-          title="New Campaign"
-          size="sm"
-          variant="secondary"
-          icon="add"
-          onPress={() => navigation.navigate('Create')}
-        />
+        <View style={styles.headerActions}>
+          <Button
+            title="New"
+            size="sm"
+            variant="secondary"
+            icon="add"
+            onPress={() => navigation.navigate('Create')}
+          />
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => {
+              logout();
+              navigation.goBack();
+            }}
+            style={styles.logoutButton}
+          >
+            <Ionicons name="log-out-outline" size={20} color={colors.textInverse} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Filter Tabs */}
@@ -244,6 +313,65 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     backgroundColor: colors.forestGreen,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  backButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoutButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  authRequiredContainer: {
+    flex: 1,
+    backgroundColor: colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  lockIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: colors.mintLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  authRequiredTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    fontFamily: typography.fontFamilySerif,
+    marginBottom: spacing.xs,
+    textAlign: 'center',
+  },
+  authRequiredSub: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 19,
+    marginBottom: spacing.xl,
+    maxWidth: 320,
   },
   headerEyebrow: {
     fontSize: 10,
