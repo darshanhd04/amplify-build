@@ -13,3 +13,5 @@ web-build/
 .env.local
 android/
 ios/
+*.apk
+*.aab
