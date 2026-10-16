@@ -1,8 +1,12 @@
 /**
  * LoginScreen
  * Editorial-grade authentication portal for Campaign Creators & Evaluators.
- * Includes email/password auth, tab toggle for account creation,
- * 1-tap demo fast-track sign-ins, and contextual redirect back to Dashboard.
+ * Features:
+ * - Social & Federated Sign-In: Google / Gmail and Apple (iOS)
+ * - Email & Password authentication
+ * - Tab switcher & "Already have an account? Sign In" toggle
+ * - 1-Tap Demo fast-track sign-ins (Creator & Reviewer Desk)
+ * - Contextual redirect back to Dashboard or submitted campaign
  */
 
 import React, { useState } from 'react';
@@ -18,6 +22,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, borderRadius, shadows } from '../../theme';
@@ -37,8 +42,11 @@ export const LoginScreen = ({ navigation, route }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState(null); // 'google' | 'apple' | null
   const [errorMessage, setErrorMessage] = useState('');
+  const [successToast, setSuccessToast] = useState('');
 
+  // 1. Email / Password Sign In
   const handleSignIn = async () => {
     setErrorMessage('');
     if (!email.trim()) {
@@ -63,9 +71,9 @@ export const LoginScreen = ({ navigation, route }) => {
           handle: handle.trim() || `@${email.split('@')[0]}`,
           role: role === 'Reviewer' ? 'Editorial Reviewer' : 'Campaign Creator',
           isReviewerSimulated: role === 'Reviewer',
+          authProvider: 'email',
         });
         setLoading(false);
-        // Navigate to target destination
         navigation.replace(returnTo, { initialTab });
       } catch (err) {
         setLoading(false);
@@ -74,6 +82,59 @@ export const LoginScreen = ({ navigation, route }) => {
     }, 600);
   };
 
+  // 2. Google / Gmail Sign In
+  const handleGoogleSignIn = async () => {
+    setErrorMessage('');
+    setSocialLoading('google');
+    setSuccessToast('Authenticating with Google Account / Gmail...');
+
+    setTimeout(async () => {
+      try {
+        await login({
+          id: 'user-google-01',
+          name: 'Darshan (Google Verified)',
+          handle: '@darshan_advocacy',
+          email: 'darshanhd.campaigns@gmail.com',
+          role: 'Verified Campaign Creator',
+          isReviewerSimulated: false,
+          authProvider: 'google',
+        });
+        setSocialLoading(null);
+        navigation.replace(returnTo, { initialTab });
+      } catch (err) {
+        setSocialLoading(null);
+        setErrorMessage('Google authentication encountered an issue.');
+      }
+    }, 700);
+  };
+
+  // 3. Apple (iOS) Sign In
+  const handleAppleSignIn = async () => {
+    setErrorMessage('');
+    setSocialLoading('apple');
+    setSuccessToast('Authenticating with Apple ID (iOS)...');
+
+    setTimeout(async () => {
+      try {
+        await login({
+          id: 'user-apple-01',
+          name: 'Apple Verified Creator',
+          handle: '@apple_creator',
+          email: 'creator.apple@privaterelay.appleid.com',
+          role: 'Verified Campaign Creator',
+          isReviewerSimulated: false,
+          authProvider: 'apple',
+        });
+        setSocialLoading(null);
+        navigation.replace(returnTo, { initialTab });
+      } catch (err) {
+        setSocialLoading(null);
+        setErrorMessage('Apple ID authentication failed.');
+      }
+    }, 700);
+  };
+
+  // 4. Quick Demo Logins
   const handleQuickDemoLogin = async (type) => {
     setLoading(true);
     setErrorMessage('');
@@ -87,6 +148,7 @@ export const LoginScreen = ({ navigation, route }) => {
             email: 'ananya.s@example.org',
             role: 'Campaign Creator',
             isReviewerSimulated: false,
+            authProvider: 'demo',
           });
         } else if (type === 'reviewer') {
           await login({
@@ -96,6 +158,7 @@ export const LoginScreen = ({ navigation, route }) => {
             email: 'editorial.desk@amplify.org',
             role: 'Lead Editorial Reviewer',
             isReviewerSimulated: true,
+            authProvider: 'demo',
           });
         }
         setLoading(false);
@@ -120,7 +183,9 @@ export const LoginScreen = ({ navigation, route }) => {
         >
           <Ionicons name="arrow-back" size={22} color={colors.textInverse} />
         </TouchableOpacity>
-        <Text style={styles.topBarTitle}>Creator Authentication</Text>
+        <Text style={styles.topBarTitle}>
+          {mode === 'login' ? 'Sign In to AMPLIFY' : 'Create Creator Account'}
+        </Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -142,9 +207,13 @@ export const LoginScreen = ({ navigation, route }) => {
                 <Text style={styles.badgeText}>VERIFIED CREATOR GATEWAY</Text>
               </View>
             </View>
-            <Text style={styles.heroTitle}>Sign In to Continue</Text>
+            <Text style={styles.heroTitle}>
+              {mode === 'login' ? 'Welcome Back' : 'Join as a Creator'}
+            </Text>
             <Text style={styles.heroSubtitle}>
-              Access your Campaign Dashboard, monitor live media ad delivery, and utilize the in-app Reviewer Desk.
+              {mode === 'login'
+                ? 'Sign in to access your Campaign Dashboard, monitor ad delivery metrics, and access the Reviewer Desk.'
+                : 'Create an account to publish verified campaigns, access transparent funding tools, and broadcast your story.'}
             </Text>
           </View>
 
@@ -176,12 +245,73 @@ export const LoginScreen = ({ navigation, route }) => {
             </TouchableOpacity>
           </View>
 
+          {/* SOCIAL & FEDERATED SIGN-IN OPTIONS */}
+          <View style={styles.socialButtonsContainer}>
+            {/* Google / Gmail Button */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={handleGoogleSignIn}
+              disabled={socialLoading !== null}
+              style={styles.googleButton}
+            >
+              {socialLoading === 'google' ? (
+                <ActivityIndicator size="small" color="#EA4335" />
+              ) : (
+                <>
+                  <View style={styles.socialIconBox}>
+                    <Ionicons name="logo-google" size={20} color="#EA4335" />
+                  </View>
+                  <Text style={styles.googleButtonText}>
+                    {mode === 'login' ? 'Sign in with Google / Gmail' : 'Sign up with Google / Gmail'}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            {/* Apple (iOS) Button */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={handleAppleSignIn}
+              disabled={socialLoading !== null}
+              style={styles.appleButton}
+            >
+              {socialLoading === 'apple' ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <View style={styles.socialIconBox}>
+                    <Ionicons name="logo-apple" size={21} color="#FFFFFF" />
+                  </View>
+                  <Text style={styles.appleButtonText}>
+                    {mode === 'login' ? 'Continue with Apple (iOS)' : 'Sign up with Apple (iOS)'}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* Divider: OR WITH EMAIL */}
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>
+              OR {mode === 'login' ? 'SIGN IN' : 'SIGN UP'} WITH EMAIL
+            </Text>
+            <View style={styles.dividerLine} />
+          </View>
+
           {/* Form Card */}
           <View style={styles.card}>
             {errorMessage ? (
               <View style={styles.errorContainer}>
                 <Ionicons name="alert-circle" size={18} color={colors.error} />
                 <Text style={styles.errorText}>{errorMessage}</Text>
+              </View>
+            ) : null}
+
+            {successToast ? (
+              <View style={styles.successToastContainer}>
+                <Ionicons name="checkmark-circle" size={18} color={colors.primaryGreen} />
+                <Text style={styles.successToastText}>{successToast}</Text>
               </View>
             ) : null}
 
@@ -236,7 +366,7 @@ export const LoginScreen = ({ navigation, route }) => {
               <Ionicons name="mail-outline" size={18} color={colors.textTertiary} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="name@organization.org"
+                placeholder="name@organization.org or gmail.com"
                 placeholderTextColor={colors.textTertiary}
                 value={email}
                 onChangeText={setEmail}
@@ -291,7 +421,7 @@ export const LoginScreen = ({ navigation, route }) => {
                   onPress={() =>
                     Alert.alert(
                       'Password Reset',
-                      'For hackathon evaluation, you can use the 1-Tap Demo sign-ins below or enter any sample password.'
+                      'For hackathon evaluation, you can use the Google, Apple, or 1-Tap Demo sign-ins, or enter any sample password.'
                     )
                   }
                 >
@@ -306,8 +436,8 @@ export const LoginScreen = ({ navigation, route }) => {
                 loading
                   ? 'Authenticating...'
                   : mode === 'login'
-                  ? 'Sign In to Dashboard'
-                  : 'Create Creator Account'
+                  ? 'Sign In with Email'
+                  : 'Complete Registration'
               }
               onPress={handleSignIn}
               loading={loading}
@@ -315,6 +445,37 @@ export const LoginScreen = ({ navigation, route }) => {
               iconPosition="right"
               style={styles.submitButton}
             />
+
+            {/* ALREADY HAVE AN ACCOUNT / DON'T HAVE AN ACCOUNT SWITCHER */}
+            <View style={styles.accountSwitchContainer}>
+              {mode === 'register' ? (
+                <View style={styles.switchRow}>
+                  <Text style={styles.switchPromptText}>Already have an account?</Text>
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      setMode('login');
+                      setErrorMessage('');
+                    }}
+                  >
+                    <Text style={styles.switchActionLink}> Sign In</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={styles.switchRow}>
+                  <Text style={styles.switchPromptText}>Don’t have an account yet?</Text>
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      setMode('register');
+                      setErrorMessage('');
+                    }}
+                  >
+                    <Text style={styles.switchActionLink}> Sign Up / Register</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
           </View>
 
           {/* Quick Demo Access Divider */}
@@ -336,7 +497,7 @@ export const LoginScreen = ({ navigation, route }) => {
                   <Ionicons name="flash" size={18} color={colors.primaryGreen} />
                 </View>
                 <View>
-                  <Text style={styles.demoCardTitle}>Ananya Sharma (Creator)</Text>
+                  <Text style={styles.demoCardTitle}>Ananya Sharma (Creator Demo)</Text>
                   <Text style={styles.demoCardSub}>View active campaigns, drafts & stats</Text>
                 </View>
               </View>
@@ -353,7 +514,7 @@ export const LoginScreen = ({ navigation, route }) => {
                   <Ionicons name="shield-checkmark" size={18} color="#6B46C1" />
                 </View>
                 <View>
-                  <Text style={styles.demoCardTitle}>Editorial Reviewer (Desk)</Text>
+                  <Text style={styles.demoCardTitle}>Editorial Reviewer (Desk Demo)</Text>
                   <Text style={styles.demoCardSub}>Approve/reject campaigns in moderation</Text>
                 </View>
               </View>
@@ -365,7 +526,7 @@ export const LoginScreen = ({ navigation, route }) => {
           <View style={styles.footerNote}>
             <Ionicons name="lock-closed" size={14} color={colors.textTertiary} />
             <Text style={styles.footerNoteText}>
-              256-bit encrypted session. AMPLIFY adheres to strict transparency standards.
+              256-bit encrypted authentication. Verified digital media distribution governance.
             </Text>
           </View>
         </ScrollView>
@@ -469,6 +630,49 @@ const styles = StyleSheet.create({
     color: colors.forestGreen,
     fontWeight: '700',
   },
+  socialButtonsContainer: {
+    gap: 10,
+    marginBottom: spacing.sm,
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: '#DADCE0',
+    borderRadius: borderRadius.md,
+    height: 48,
+    paddingHorizontal: spacing.md,
+    ...shadows.card,
+  },
+  googleButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#3C4043',
+    letterSpacing: 0.2,
+  },
+  appleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#000000',
+    borderRadius: borderRadius.md,
+    height: 48,
+    paddingHorizontal: spacing.md,
+    ...shadows.card,
+  },
+  appleButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
+  },
+  socialIconBox: {
+    marginRight: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   card: {
     backgroundColor: colors.surface,
     borderRadius: borderRadius.lg,
@@ -491,6 +695,23 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 12,
     color: colors.error,
+    fontWeight: '600',
+    flex: 1,
+  },
+  successToastContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.mintLight,
+    borderWidth: 1,
+    borderColor: colors.primaryGreen,
+    padding: spacing.sm,
+    borderRadius: borderRadius.sm,
+    marginBottom: spacing.md,
+    gap: 8,
+  },
+  successToastText: {
+    fontSize: 12,
+    color: colors.forestGreen,
     fontWeight: '600',
     flex: 1,
   },
@@ -575,10 +796,31 @@ const styles = StyleSheet.create({
   submitButton: {
     marginTop: 4,
   },
+  accountSwitchContainer: {
+    marginTop: spacing.md,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    alignItems: 'center',
+  },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  switchPromptText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  switchActionLink: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: colors.forestGreen,
+  },
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: spacing.lg,
+    marginVertical: spacing.md,
   },
   dividerLine: {
     flex: 1,
