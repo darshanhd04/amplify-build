@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "AMPLIFY",
+    "slug": "amplify-campaigns",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#174D3B"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.amplify.campaigns"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#174D3B"
+      },
+      "package": "com.amplify.campaigns",
+      "versionCode": 1,
+      "permissions": [
+        "INTERNET",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow AMPLIFY to access photos to select campaign and ad visuals."
+        }
+      ]
+    ]
+  }
+}
